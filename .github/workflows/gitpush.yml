@@ -62,5 +62,5 @@ jobs:
         with:
           task-definition: ecs-task-definition.json
           service: my-ecs-service
-          cluster: my-ecs-cluster
+          cluster: web-app-ec2
           wait-for-service-stability: true
