@@ -1,6 +1,6 @@
 name: Build, Push, and Deploy to ECS
 
-on:
+on: 
   push:
     branches:
       - main
@@ -61,13 +61,19 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ecs-task-definition.json
-          service: my-ecs-service         # Replace with your ECS service name
-          cluster: my-ecs-cluster         # Replace with your ECS cluster name
+          service: web-app-ec2-service
+          cluster: web-app-ec2-cluster
           wait-for-service-stability: true
 
-      - name: Retrieve ECS Service Public IP (for Fargate)
+      - name: Retrieve Public IP of ECS Task
         run: |
-          # Get the public IP of the ECS task if using Fargate
-          TASK_ID=$(aws ecs list-tasks --cluster my-ecs-cluster --service-name my-ecs-service --query 'taskArns[0]' --output text)
-          PUBLIC_IP=$(aws ecs describe-tasks --cluster my-ecs-cluster --tasks $TASK_ID --query 'tasks[0].attachments[0].details[?name==`privateIpAddress`].value' --output text)
+          # Get the ECS task ID for the running task
+          TASK_ID=$(aws ecs list-tasks --cluster web-app-ec2-cluster --service-name web-app-ec2-service --query 'taskArns[0]' --output text)
+          
+          # Get the ENI (Elastic Network Interface) associated with the ECS task
+          ENI_ID=$(aws ecs describe-tasks --cluster web-app-ec2-cluster --tasks $TASK_ID --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text)
+          
+          # Retrieve the public IP address associated with the ENI
+          PUBLIC_IP=$(aws ec2 describe-network-interfaces --network-interface-ids $ENI_ID --query 'NetworkInterfaces[0].Association.PublicIp' --output text)
+          
           echo "Public IP of the ECS task: $PUBLIC_IP"
