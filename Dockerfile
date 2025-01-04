@@ -1,11 +1,8 @@
-# Use the official Nginx image
-FROM nginx:alpine
+# Use the official Apache2 image as the base
+FROM httpd:latest
 
-# Copy HTML files to the Nginx default directory
-COPY . /usr/share/nginx/html
+# Copy your HTML files to the Apache web directory
+COPY ./ /usr/local/apache2/htdocs/
 
 # Expose port 80
 EXPOSE 80
-
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
