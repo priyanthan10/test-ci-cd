@@ -53,7 +53,8 @@ jobs:
                   }
                 ]
               }
-            ]
+            ],
+            "networkMode": "awsvpc"
           }
           EOF
 
@@ -70,10 +71,16 @@ jobs:
           # Get the ECS task ID for the running task
           TASK_ID=$(aws ecs list-tasks --cluster web-app-ec2-cluster --service-name web-app-ec2-service --query 'taskArns[0]' --output text)
           
-          # Get the ENI (Elastic Network Interface) associated with the ECS task
+          # Get the ENI (Elastic Network Interface) associated with the ECS task (Only for Fargate)
           ENI_ID=$(aws ecs describe-tasks --cluster web-app-ec2-cluster --tasks $TASK_ID --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text)
-          
-          # Retrieve the public IP address associated with the ENI
-          PUBLIC_IP=$(aws ec2 describe-network-interfaces --network-interface-ids $ENI_ID --query 'NetworkInterfaces[0].Association.PublicIp' --output text)
-          
-          echo "Public IP of the ECS task: $PUBLIC_IP"
+
+          if [ "$ENI_ID" != "None" ]; then
+            # If ENI exists (Fargate), retrieve the public IP address associated with the ENI
+            PUBLIC_IP=$(aws ec2 describe-network-interfaces --network-interface-ids $ENI_ID --query 'NetworkInterfaces[0].Association.PublicIp' --output text)
+            echo "Public IP of the ECS task: $PUBLIC_IP"
+          else
+            # If no ENI (EC2), retrieve the public IP of the EC2 instance running the ECS task
+            EC2_INSTANCE_ID=$(aws ecs describe-tasks --cluster web-app-ec2-cluster --tasks $TASK_ID --query 'tasks[0].containerInstanceId' --output text)
+            PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $EC2_INSTANCE_ID --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+            echo "Public IP of the EC2 instance: $PUBLIC_IP"
+          fi
