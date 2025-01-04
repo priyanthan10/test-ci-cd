@@ -1,30 +1,11 @@
-# Use the AlmaLinux base image
-FROM almalinux:8
+# Use the official Nginx image
+FROM nginx:alpine
 
-# Set environment variables
-ENV NODE_VERSION=16 \
-    PATH="/usr/local/bin:$PATH"
+# Copy HTML files to the Nginx default directory
+COPY . /usr/share/nginx/html
 
-# Install necessary tools and Node.js
-RUN dnf install -y gcc-c++ make curl && \
-    curl -fsSL https://rpm.nodesource.com/setup_${NODE_VERSION}.x | bash - && \
-    dnf install -y nodejs && \
-    dnf clean all
+# Expose port 80
+EXPOSE 80
 
-# Set working directory
-WORKDIR /app
-
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy application files
-COPY . .
-
-# Expose the application port
-EXPOSE 3000
-
-# Start the application
-CMD ["node", "app.js"]
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"]
