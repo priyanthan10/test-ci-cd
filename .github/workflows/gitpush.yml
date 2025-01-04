@@ -1,6 +1,6 @@
 name: Build, Push, and Deploy to ECS
 
-on: 
+on:
   push:
     branches:
       - main
@@ -61,6 +61,13 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ecs-task-definition.json
-          service: web-app-ec2-service 
-          cluster: web-app-ec2-cluster
+          service: my-ecs-service         # Replace with your ECS service name
+          cluster: my-ecs-cluster         # Replace with your ECS cluster name
           wait-for-service-stability: true
+
+      - name: Retrieve ECS Service Public IP (for Fargate)
+        run: |
+          # Get the public IP of the ECS task if using Fargate
+          TASK_ID=$(aws ecs list-tasks --cluster my-ecs-cluster --service-name my-ecs-service --query 'taskArns[0]' --output text)
+          PUBLIC_IP=$(aws ecs describe-tasks --cluster my-ecs-cluster --tasks $TASK_ID --query 'tasks[0].attachments[0].details[?name==`privateIpAddress`].value' --output text)
+          echo "Public IP of the ECS task: $PUBLIC_IP"
