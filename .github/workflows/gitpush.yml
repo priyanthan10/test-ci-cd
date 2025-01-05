@@ -69,12 +69,12 @@ jobs:
         run: |
           SERVICE_EXISTS=$(aws ecs describe-services --cluster apache-web-cluster --services apache-web-service --query "services[0].serviceName" --output text)
           echo "Service Exists: $SERVICE_EXISTS"
-          echo "::set-output name=service_exists::$SERVICE_EXISTS"
+          echo "service_exists=$SERVICE_EXISTS" >> $GITHUB_ENV
 
       # Step 8: Create ECS Service if not exists or update if exists
       - name: Create or Update ECS Service
         run: |
-          if [ "${{ steps.check-service.outputs.service_exists }}" == "apache-web-service" ]; then
+          if [ "${{ env.service_exists }}" == "apache-web-service" ]; then
             echo "Service already exists, updating service..."
             aws ecs update-service \
               --cluster apache-web-cluster \
@@ -92,6 +92,7 @@ jobs:
               --launch-type FARGATE \
               --network-configuration "awsvpcConfiguration={subnets=[subnet-06d6437824c554b71],securityGroups=[sg-0d7c9a80b869b0b74],assignPublicIp=ENABLED}" \
               --region ap-south-1
+          fi
 
       # Step 9: Deploy ECS Service (Rolling update)
       - name: Deploy to ECS
