@@ -41,9 +41,9 @@ jobs:
       # Step 5: Generate the ECS task definition JSON file
       - name: Generate ECS Task Definition
         run: |
-          cat <<EOF > ecs-task-definition.json
+          cat <<EOF > ecs-task-definition-2.json
           {
-            "family": "static-html-task",
+            "family": "static-html-task-2",
             "networkMode": "awsvpc",
             "containerDefinitions": [
               {
@@ -72,7 +72,7 @@ jobs:
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
-          task-definition: ecs-task-definition.json
+          task-definition: ecs-task-definition-2.json
           service: apache-web-service
           cluster: apache-web-cluster
           wait-for-service-stability: true
