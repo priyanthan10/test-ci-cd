@@ -83,16 +83,20 @@ jobs:
       - name: Delete Existing Target Group and Create New Target Group
         id: create-target-group
         run: |
+          # Try to get the existing target group ARN
           EXISTING_TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
               --names apache-web-target-group \
               --query 'TargetGroups[0].TargetGroupArn' \
               --output text)
 
-          if [ "$EXISTING_TARGET_GROUP_ARN" != "None" ]; then
+          if [[ "$EXISTING_TARGET_GROUP_ARN" == "None" ]]; then
+              echo "No existing target group found. Creating a new one."
+          else
               echo "Deleting existing target group: $EXISTING_TARGET_GROUP_ARN"
               aws elbv2 delete-target-group --target-group-arn $EXISTING_TARGET_GROUP_ARN
           fi
 
+          # Create a new target group
           TARGET_GROUP_ARN=$(aws elbv2 create-target-group \
               --name apache-web-target-group \
               --protocol HTTP \
@@ -118,7 +122,7 @@ jobs:
             --load-balancers "targetGroupArn=${{ env.target_group_arn }},containerName=apache-container,containerPort=80" \
             --region ap-south-1
 
-      # Step 10: Create Listener for Load Balancer
+      # Step 10: Create a Listener for the Load Balancer
       - name: Create Listener for Load Balancer
         run: |
           aws elbv2 create-listener \
@@ -141,13 +145,13 @@ jobs:
       - name: Retrieve Public IP of Application
         id: retrieve-ip
         run: |
-          # Check if an ALB is being used
-          ELB_DNS_NAME=$(aws elbv2 describe-load-balancers \
-            --query "LoadBalancers[?LoadBalancerName=='apache-web-alb'].DNSName" \
+          # Check if an ELB is being used (Replace 'apache-web-alb' with the actual ALB name)
+          ELB_DNS_NAME=$(aws elb describe-load-balancers \
+            --query "LoadBalancerDescriptions[?LoadBalancerName=='apache-web-alb'].DNSName" \
             --output text)
           
           if [ -n "$ELB_DNS_NAME" ]; then
-            echo "ALB DNS Name: $ELB_DNS_NAME"
+            echo "ELB DNS Name: $ELB_DNS_NAME"
             echo "Application is accessible at: http://$ELB_DNS_NAME"
           else
             # Fallback to retrieving ECS Task Public IP (for Fargate with public IP enabled)
