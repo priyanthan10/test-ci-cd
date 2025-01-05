@@ -6,93 +6,8 @@ on:
       - main
 
 jobs:
-  create-cluster:
-    name: Create ECS Cluster
-    runs-on: ubuntu-latest
-
-    steps:
-      # Step 1: Configure AWS credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1
-
-      # Step 2: Verify AWS credentials
-      - name: Verify AWS credentials
-        run: aws sts get-caller-identity --region ap-south-1
-
-      # Step 3: Create ECS Cluster
-      - name: Create ECS Cluster
-        run: |
-          aws ecs create-cluster \
-            --cluster-name apache-web-cluster \
-            --region ap-south-1
-
-  create-task-definition:
-    name: Create ECS Task Definition
-    runs-on: ubuntu-latest
-
-    steps:
-      # Step 1: Configure AWS credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1
-
-      # Step 2: Verify AWS credentials
-      - name: Verify AWS credentials
-        run: aws sts get-caller-identity --region ap-south-1
-
-      # Step 3: Create ECS Task Definition
-      - name: Create ECS Task Definition
-        run: |
-          aws ecs register-task-definition \
-            --family static-html-task \
-            --network-mode awsvpc \
-            --execution-role-arn arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole \
-            --container-definitions '[{
-              "name": "apache-container",
-              "image": "${{ steps.login-ecr.outputs.registry }}/static-html-apache:latest",
-              "memory": 512,
-              "portMappings": [{"containerPort": 80, "protocol": "tcp"}]
-            }]' \
-            --region ap-south-1
-
-  create-service:
-    name: Create ECS Service
-    runs-on: ubuntu-latest
-
-    steps:
-      # Step 1: Configure AWS credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1
-
-      # Step 2: Verify AWS credentials
-      - name: Verify AWS credentials
-        run: aws sts get-caller-identity --region ap-south-1
-
-      # Step 3: Create ECS Service
-      - name: Create ECS Service
-        run: |
-          aws ecs create-service \
-            --cluster apache-web-cluster \
-            --service-name apache-web-service \
-            --task-definition static-html-task \
-            --desired-count 1 \
-            --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxxxxxx],securityGroups=[sg-xxxxxxxx],assignPublicIp=ENABLED}" \
-            --region ap-south-1
-
-  build:
-    name: Build, Push Docker Image to ECR, and Deploy to ECS
+  deploy:
+    name: Build, Push, and Deploy to ECS
     runs-on: ubuntu-latest
 
     steps:
@@ -123,28 +38,48 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-  deploy:
-    name: Deploy to ECS
-    runs-on: ubuntu-latest
+      # Step 5: Create ECS Cluster
+      - name: Create ECS Cluster
+        run: |
+          aws ecs create-cluster --cluster-name apache-web-cluster --region ap-south-1
 
-    steps:
-      # Step 1: Configure AWS credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1
+      # Step 6: Register ECS Task Definition
+      - name: Register ECS Task Definition
+        run: |
+          aws ecs register-task-definition \
+            --family static-html-task \
+            --execution-role-arn arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole \
+            --network-mode awsvpc \
+            --container-definitions '[{
+                "name": "apache-container",
+                "image": "${{ steps.login-ecr.outputs.registry }}/static-html-apache:latest",
+                "memory": 512,
+                "cpu": 256,
+                "essential": true,
+                "portMappings": [{"containerPort": 80, "hostPort": 80, "protocol": "tcp"}]
+            }]' \
+            --requires-compatibilities FARGATE \
+            --cpu 256 \
+            --memory 512 \
+            --region ap-south-1
 
-      # Step 2: Verify AWS credentials
-      - name: Verify AWS credentials
-        run: aws sts get-caller-identity --region ap-south-1
+      # Step 7: Create ECS Service
+      - name: Create ECS Service
+        run: |
+          aws ecs create-service \
+            --cluster apache-web-cluster \
+            --service-name apache-web-service \
+            --task-definition static-html-task \
+            --desired-count 1 \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxxxxxx],securityGroups=[sg-xxxxxxxx],assignPublicIp=ENABLED}" \
+            --region ap-south-1
 
-      # Step 3: Deploy to Amazon ECS
-      - name: Deploy to Amazon ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: config/ecs-task-definition-3.json
-          service: apache-web-service
-          cluster: apache-web-cluster
-          wait-for-service-stability: true
+      # Step 8: Deploy ECS Service (Rolling update)
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster apache-web-cluster \
+            --service apache-web-service \
+            --force-new-deployment \
+            --region ap-south-1
