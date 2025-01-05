@@ -1,4 +1,4 @@
-name: Build, Push, and Deploy to ECS
+name: Build, Push, Deploy to ECS, and Get Public IP
 
 on: 
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Build, Push, and Deploy to ECS
+    name: Build, Push, Deploy to ECS
     runs-on: ubuntu-latest
 
     steps:
@@ -38,10 +38,10 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      # Step 5: Create ECS Cluster
+      # Step 5: Create ECS Cluster (if not already created)
       - name: Create ECS Cluster
         run: |
-          aws ecs create-cluster --cluster-name apache-web-cluster --region ap-south-1
+          aws ecs create-cluster --cluster-name apache-web-cluster --region ap-south-1 || echo "Cluster already exists"
 
       # Step 6: Register ECS Task Definition
       - name: Register ECS Task Definition
@@ -83,3 +83,28 @@ jobs:
             --service apache-web-service \
             --force-new-deployment \
             --region ap-south-1
+
+      # Step 9: Retrieve the Public IP (Elastic Load Balancer or ECS Task)
+      - name: Retrieve Public IP of Application
+        id: retrieve-ip
+        run: |
+          # Check if an ELB is being used (Replace 'your-load-balancer-name' with the actual ELB name)
+          ELB_DNS_NAME=$(aws elb describe-load-balancers \
+            --query "LoadBalancerDescriptions[?LoadBalancerName=='your-load-balancer-name'].DNSName" \
+            --output text)
+          
+          if [ -n "$ELB_DNS_NAME" ]; then
+            echo "ELB DNS Name: $ELB_DNS_NAME"
+            echo "Application is accessible at: http://$ELB_DNS_NAME"
+          else
+            # Fallback to retrieving ECS Task Public IP (for Fargate with public IP enabled)
+            TASK_ID=$(aws ecs list-tasks --cluster apache-web-cluster --service-name apache-web-service --query "taskArns[0]" --output text)
+            PUBLIC_IP=$(aws ecs describe-tasks \
+              --cluster apache-web-cluster \
+              --tasks $TASK_ID \
+              --query "tasks[0].attachments[0].details[?name=='publicIpv4Address'].value" \
+              --output text)
+            
+            echo "ECS Task Public IP: $PUBLIC_IP"
+            echo "Application is accessible at: http://$PUBLIC_IP"
+          fi
