@@ -9,21 +9,28 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      AWS_REGION: ap-south-1  # Set region globally for the job
-    
     steps:
       # Checkout the code
       - name: Checkout Repository
         uses: actions/checkout@v2
 
+      # Set up AWS CLI credentials
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1  # Specify your region
+
       # Set up Docker Buildx (for building multi-platform images)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Log in to AWS ECR
+      # Log in to Amazon ECR
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
+        with:
+          region: ap-south-1  # Specify the region here
 
       # Build the Docker image
       - name: Build Docker image
@@ -33,18 +40,18 @@ jobs:
       # Tag the Docker image
       - name: Tag Docker image
         run: |
-          docker tag my-static-website:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/my-static-website:latest
+          docker tag my-static-website:latest <AWS_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/my-static-website:latest
 
-      # Push the Docker image to AWS ECR
+      # Push the Docker image to Amazon ECR
       - name: Push Docker image to Amazon ECR
         run: |
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/my-static-website:latest
+          docker push <AWS_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/my-static-website:latest
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      # Log in to AWS CLI
+      # Set up AWS CLI credentials again
       - name: Set up AWS CLI
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -52,7 +59,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      # Update ECS service
+      # Deploy to ECS
       - name: Deploy to ECS
         run: |
-          aws ecs update-service --cluster apache-web-cluster --service apache-web-service  --force-new-deployment --region ap-south-1
+          aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment --region ap-south-1
