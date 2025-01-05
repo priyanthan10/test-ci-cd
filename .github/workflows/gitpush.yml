@@ -88,7 +88,7 @@ jobs:
             --name apache-web-target-group \
             --protocol HTTP \
             --port 80 \
-            --vpc-id vpc-0ecd1080248be1cf0 \
+            --vpc-id vpc-0cc8fcad4532c25c7 \
             --query 'TargetGroups[0].TargetGroupArn' \
             --output text)
 
