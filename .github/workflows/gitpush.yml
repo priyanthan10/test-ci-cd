@@ -73,6 +73,6 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ecs-task-definition-2.json
-          service: apache-web-service
+          service: apache-web-service-2
           cluster: apache-web-cluster
           wait-for-service-stability: true
