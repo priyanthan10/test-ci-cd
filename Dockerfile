@@ -1,8 +1,5 @@
-# Use the official Apache2 image as the base
-FROM httpd:latest
+# Use the official Apache HTTP Server image from Docker Hub
+FROM httpd:2.4
 
-# Copy your HTML files to the Apache web directory
-COPY ./ /usr/local/apache2/htdocs/
-
-# Expose port 80
-EXPOSE 80
+# Copy the static HTML page to the default Apache directory
+COPY ./index.html /usr/local/apache2/htdocs/

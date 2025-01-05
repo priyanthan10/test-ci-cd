@@ -1,167 +1,55 @@
-name: Build, Push, Deploy to ECS with Load Balancer
+name: Deploy Static Website to ECS
 
-on: 
+on:
   push:
     branches:
-      - main
+      - main  # Adjust to your default branch
 
 jobs:
-  deploy:
-    name: Build, Push, Deploy to ECS with Load Balancer
+  build:
     runs-on: ubuntu-latest
-
+    
     steps:
-      # Step 1: Check out the repository
-      - name: Check out code
+      # Checkout the code
+      - name: Checkout Repository
         uses: actions/checkout@v2
 
-      # Step 2: Configure AWS credentials
-      - name: Configure AWS credentials
+      # Set up Docker Buildx (for building multi-platform images)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Log in to AWS ECR
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Build the Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t my-static-website .
+
+      # Tag the Docker image
+      - name: Tag Docker image
+        run: |
+          docker tag my-static-website:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/my-static-website:latest
+
+      # Push the Docker image to AWS ECR
+      - name: Push Docker image to Amazon ECR
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/my-static-website:latest
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      # Log in to AWS CLI
+      - name: Set up AWS CLI
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      # Step 3: Log in to Amazon ECR
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-      # Step 4: Build, tag, and push the Docker image to Amazon ECR
-      - name: Build, tag, and push image to Amazon ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: static-html-apache
-          IMAGE_TAG: latest
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-      # Step 5: Create ECS Cluster (if not already created)
-      - name: Create ECS Cluster
-        run: |
-          aws ecs create-cluster --cluster-name apache-web-cluster --region ap-south-1 || echo "Cluster already exists"
-
-      # Step 6: Register ECS Task Definition
-      - name: Register ECS Task Definition
-        run: |
-          aws ecs register-task-definition \
-            --family static-html-task \
-            --execution-role-arn arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole \
-            --network-mode awsvpc \
-            --container-definitions '[{
-                "name": "apache-container",
-                "image": "${{ steps.login-ecr.outputs.registry }}/static-html-apache:latest",
-                "memory": 512,
-                "cpu": 256,
-                "essential": true,
-                "portMappings": [{"containerPort": 80, "hostPort": 80, "protocol": "tcp"}]
-            }]' \
-            --requires-compatibilities FARGATE \
-            --cpu 256 \
-            --memory 512 \
-            --region ap-south-1
-
-      # Step 7: Create Application Load Balancer (ALB)
-      - name: Create Application Load Balancer
-        id: create-alb
-        run: |
-          ALB_ARN=$(aws elbv2 create-load-balancer \
-            --name apache-web-alb \
-            --subnets subnet-06d6437824c554b71 subnet-0ca3ef571d0d92dc8 subnet-0a6ad544060f0c08c \
-            --security-groups sg-0d7c9a80b869b0b74 \
-            --scheme internet-facing \
-            --type application \
-            --query 'LoadBalancers[0].LoadBalancerArn' \
-            --output text)
-          
-          echo "ALB ARN: $ALB_ARN"
-          echo "alb_arn=$ALB_ARN" >> $GITHUB_ENV
-
-      # Step 8: Delete Existing Target Group (if not in use) and Create New One
-      - name: Delete Existing Target Group and Create New Target Group
-        id: create-target-group
-        run: |
-          # Try to get the existing target group ARN
-          EXISTING_TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
-              --names apache-web-target-group \
-              --query 'TargetGroups[0].TargetGroupArn' \
-              --output text)
-
-          if [[ "$EXISTING_TARGET_GROUP_ARN" == "None" ]]; then
-              echo "No existing target group found. Creating a new one."
-          else
-              echo "Deleting existing target group: $EXISTING_TARGET_GROUP_ARN"
-              aws elbv2 delete-target-group --target-group-arn $EXISTING_TARGET_GROUP_ARN
-          fi
-
-          # Create a new target group
-          TARGET_GROUP_ARN=$(aws elbv2 create-target-group \
-              --name apache-web-target-group \
-              --protocol HTTP \
-              --port 80 \
-              --vpc-id vpc-0cc8fcad4532c25c7 \  # Replace with your VPC ID
-              --target-type ip \  # Use 'ip' instead of 'instance'
-              --query 'TargetGroups[0].TargetGroupArn' \
-              --output text)
-
-          echo "Target Group ARN: $TARGET_GROUP_ARN"
-          echo "target_group_arn=$TARGET_GROUP_ARN" >> $GITHUB_ENV
-
-      # Step 9: Register the ALB Target Group with ECS Service
-      - name: Register Target Group with ECS Service
-        run: |
-          aws ecs create-service \
-            --cluster apache-web-cluster \
-            --service-name apache-web-service \
-            --task-definition static-html-task \
-            --desired-count 1 \
-            --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[subnet-06d6437824c554b71],securityGroups=[sg-0d7c9a80b869b0b74],assignPublicIp=ENABLED}" \
-            --load-balancers "targetGroupArn=${{ env.target_group_arn }},containerName=apache-container,containerPort=80" \
-            --region ap-south-1
-
-      # Step 10: Create a Listener for the Load Balancer
-      - name: Create Listener for Load Balancer
-        run: |
-          aws elbv2 create-listener \
-            --load-balancer-arn ${{ env.alb_arn }} \
-            --protocol HTTP \
-            --port 80 \
-            --default-actions Type=forward,TargetGroupArn=${{ env.target_group_arn }} \
-            --region ap-south-1
-
-      # Step 11: Deploy ECS Service (Rolling update)
+      # Update ECS service
       - name: Deploy to ECS
         run: |
-          aws ecs update-service \
-            --cluster apache-web-cluster \
-            --service apache-web-service \
-            --force-new-deployment \
-            --region ap-south-1
-
-      # Step 12: Retrieve the Public IP (Elastic Load Balancer or ECS Task)
-      - name: Retrieve Public IP of Application
-        id: retrieve-ip
-        run: |
-          # Check if an ELB is being used (Replace 'apache-web-alb' with the actual ALB name)
-          ELB_DNS_NAME=$(aws elb describe-load-balancers \
-            --query "LoadBalancerDescriptions[?LoadBalancerName=='apache-web-alb'].DNSName" \
-            --output text)
-          
-          if [ -n "$ELB_DNS_NAME" ]; then
-            echo "ELB DNS Name: $ELB_DNS_NAME"
-            echo "Application is accessible at: http://$ELB_DNS_NAME"
-          else
-            # Fallback to retrieving ECS Task Public IP (for Fargate with public IP enabled)
-            TASK_ID=$(aws ecs list-tasks --cluster apache-web-cluster --service-name apache-web-service --query "taskArns[0]" --output text)
-            PUBLIC_IP=$(aws ecs describe-tasks \
-              --cluster apache-web-cluster \
-              --tasks $TASK_ID \
-              --query "tasks[0].attachments[0].details[?name=='publicIpv4Address'].value" \
-              --output text)
-            
-            echo "ECS Task Public IP: $PUBLIC_IP"
-            echo "Application is accessible at: http://$PUBLIC_IP"
-          fi
+          aws ecs update-service --cluster apache-web-cluster --service apache-web-service  --force-new-deployment --region ap-south-1
