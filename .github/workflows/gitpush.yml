@@ -42,7 +42,7 @@ jobs:
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
-          task-definition: ecs-task-definition-3.json
+          task-definition: static-html-task-3.json
           service: apache-web-service
           cluster: apache-web-cluster
           wait-for-service-stability: true
