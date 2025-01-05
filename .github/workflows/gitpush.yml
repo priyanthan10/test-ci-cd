@@ -40,12 +40,12 @@ jobs:
       # Tag the Docker image
       - name: Tag Docker image
         run: |
-          docker tag my-static-website:latest <AWS_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/my-static-website:latest
+          docker tag my-static-website:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/my-static-website:latest
 
       # Push the Docker image to Amazon ECR
       - name: Push Docker image to Amazon ECR
         run: |
-          docker push <AWS_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/my-static-website:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/my-static-website:latest
 
   deploy:
     runs-on: ubuntu-latest
