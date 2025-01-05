@@ -38,37 +38,7 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      # Step 5: Generate the ECS task definition JSON file
-      - name: Generate ECS Task Definition
-        run: |
-          cat <<EOF > ecs-task-definition-2.json
-          {
-            "family": "static-html-task-2",
-            "networkMode": "awsvpc",
-            "containerDefinitions": [
-              {
-                "name": "apache-container",
-                "image": "${{ steps.login-ecr.outputs.registry }}/static-html-apache:latest",
-                "memory": 512,
-                "cpu": 256,
-                "essential": true,
-                "portMappings": [
-                  {
-                    "containerPort": 80,
-                    "hostPort": 80,
-                    "protocol": "tcp"
-                  }
-                ]
-              }
-            ],
-            "requiresCompatibilities": ["FARGATE"],
-            "cpu": "256",
-            "memory": "512",
-            "executionRoleArn": "ecsTaskExecutionRole"
-          }
-          EOF
-
-      # Step 6: Deploy to Amazon ECS
+      # Step 5: Deploy to Amazon ECS
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
