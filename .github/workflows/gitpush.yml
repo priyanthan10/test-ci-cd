@@ -70,7 +70,7 @@ jobs:
           # Create the Load Balancer
           ALB_ARN=$(aws elbv2 create-load-balancer \
             --name apache-web-alb \
-            --subnets subnet-06d6437824c554b71 \
+            --subnets subnet-06d6437824c554b71 subnet-0ca3ef571d0d92dc8 subnet-0a6ad544060f0c08c \
             --security-groups sg-0d7c9a80b869b0b74 \
             --scheme internet-facing \
             --type application \
