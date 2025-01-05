@@ -11,9 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Check out the repository
       - name: Check out code
         uses: actions/checkout@v2
 
+      # Step 2: Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -21,28 +23,31 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
+      # Step 3: Log in to Amazon ECR
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+      # Step 4: Build, tag, and push the Docker image to Amazon ECR
       - name: Build, tag, and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: github-push-action
+          ECR_REPOSITORY: static-html-apache
           IMAGE_TAG: latest
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
+      # Step 5: Generate the ECS task definition JSON file
       - name: Generate ECS Task Definition
         run: |
           cat <<EOF > ecs-task-definition.json
           {
-            "family": "my-ecs-task",
+            "family": "static-html-task",
             "containerDefinitions": [
               {
-                "name": "my-container",
-                "image": "${{ steps.login-ecr.outputs.registry }}/github-push-action:latest",
+                "name": "apache-container",
+                "image": "${{ steps.login-ecr.outputs.registry }}/static-html-apache:latest",
                 "memory": 512,
                 "cpu": 256,
                 "essential": true,
@@ -57,10 +62,11 @@ jobs:
           }
           EOF
 
+      # Step 6: Deploy to Amazon ECS
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ecs-task-definition.json
-          service: web-app-ec2-service
-          cluster: web-app-ec2-cluster
+          service: apache-web-service
+          cluster: apache-web-cluster
           wait-for-service-stability: true
