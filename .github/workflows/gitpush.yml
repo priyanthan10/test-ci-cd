@@ -64,7 +64,7 @@ jobs:
             "requiresCompatibilities": ["FARGATE"],
             "cpu": "256",
             "memory": "512",
-            "executionRoleArn": "<your-ecs-task-execution-role-arn>"
+            "executionRoleArn": "ecsTaskExecutionRole"
           }
           EOF
 
