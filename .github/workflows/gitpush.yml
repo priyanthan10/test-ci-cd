@@ -67,7 +67,6 @@ jobs:
       - name: Create Application Load Balancer
         id: create-alb
         run: |
-          # Create the Load Balancer
           ALB_ARN=$(aws elbv2 create-load-balancer \
             --name apache-web-alb \
             --subnets subnet-06d6437824c554b71 subnet-0ca3ef571d0d92dc8 subnet-0a6ad544060f0c08c \
@@ -80,7 +79,7 @@ jobs:
           echo "ALB ARN: $ALB_ARN"
           echo "alb_arn=$ALB_ARN" >> $GITHUB_ENV
 
-      # Step 8: Create Target Group for ALB
+      # Step 8: Create Target Group for ALB (with IP target type)
       - name: Create Target Group for ALB
         id: create-target-group
         run: |
@@ -89,6 +88,7 @@ jobs:
             --protocol HTTP \
             --port 80 \
             --vpc-id vpc-0cc8fcad4532c25c7 \
+            --target-type ip \  # Use 'ip' instead of 'instance'
             --query 'TargetGroups[0].TargetGroupArn' \
             --output text)
 
