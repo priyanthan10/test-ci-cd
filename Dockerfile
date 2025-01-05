@@ -2,4 +2,6 @@
 FROM httpd:2.4
 
 # Copy the static HTML page to the default Apache directory
-COPY ./index.html /usr/local/apache2/htdocs/
+COPY index.html /usr/local/apache2/htdocs/
+
+EXPOSE 80
