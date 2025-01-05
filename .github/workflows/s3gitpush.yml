@@ -22,4 +22,5 @@ jobs:
 
     - name: Sync Files to S3
       run: |
-        aws s3 sync . s3://http-site-webpage --delete --acl public-read
+        aws s3 sync . s3://http-site-webpage --delete \
+          --exclude ".git/*" --exclude ".github/*" --exclude "*.yml"
