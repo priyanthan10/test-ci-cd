@@ -42,7 +42,50 @@ jobs:
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
-          task-definition: static-html-task-3.json
+          task-definition: config/ecs-task-definition-3.json
           service: apache-web-service
           cluster: apache-web-cluster
           wait-for-service-stability: true
+
+  create-cluster:
+    name: Create ECS Cluster
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create ECS Cluster
+        run: |
+          aws ecs create-cluster \
+            --cluster-name apache-web-cluster
+
+  create-task-definition:
+    name: Create ECS Task Definition
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create ECS Task Definition
+        run: |
+          aws ecs register-task-definition \
+            --family static-html-task \
+            --network-mode awsvpc \
+            --execution-role-arn arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole \
+            --container-definitions '[{
+              "name": "apache-container",
+              "image": "${{ steps.login-ecr.outputs.registry }}/static-html-apache:latest",
+              "memory": 512,
+              "portMappings": [{"containerPort": 80, "protocol": "tcp"}]
+            }]'
+
+  create-service:
+    name: Create ECS Service
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create ECS Service
+        run: |
+          aws ecs create-service \
+            --cluster apache-web-cluster \
+            --service-name apache-web-service \
+            --task-definition static-html-task \
+            --desired-count 1 \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxxxxxx],securityGroups=[sg-xxxxxxxx],assignPublicIp=ENABLED}"
