@@ -72,7 +72,7 @@ jobs:
             --task-definition static-html-task \
             --desired-count 1 \
             --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxxxxxx],securityGroups=[sg-xxxxxxxx],assignPublicIp=ENABLED}" \
+            --network-configuration "awsvpcConfiguration={subnets=[subnet-06d6437824c554b71],securityGroups=[sg-0d7c9a80b869b0b74],assignPublicIp=ENABLED}" \
             --region ap-south-1
 
       # Step 8: Deploy ECS Service (Rolling update)
