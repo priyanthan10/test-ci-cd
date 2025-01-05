@@ -38,15 +38,6 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      # Step 5: Deploy to Amazon ECS
-      - name: Deploy to Amazon ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: config/ecs-task-definition-3.json
-          service: apache-web-service
-          cluster: apache-web-cluster
-          wait-for-service-stability: true
-
   create-cluster:
     name: Create ECS Cluster
     runs-on: ubuntu-latest
@@ -92,3 +83,16 @@ jobs:
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxxxxxx],securityGroups=[sg-xxxxxxxx],assignPublicIp=ENABLED}" \
             --region ap-south-1
+
+  deploy:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: config/ecs-task-definition-3.json
+          service: apache-web-service
+          cluster: apache-web-cluster
+          wait-for-service-stability: true
