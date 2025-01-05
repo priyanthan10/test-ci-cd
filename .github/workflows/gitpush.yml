@@ -8,6 +8,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: ap-south-1  # Set region globally for the job
     
     steps:
       # Checkout the code
