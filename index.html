@@ -3,26 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Awesome Web App</title>
+    <title>Modern UI Website - Home</title>
     <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --text-color: #333;
+            --background-color: #f4f4f4;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
             line-height: 1.6;
+            color: var(--text-color);
             margin: 0;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+            background-color: var(--background-color);
         }
         header {
-            background-color: #4a90e2;
+            background-color: var(--primary-color);
             color: white;
-            text-align: center;
             padding: 1rem;
+            text-align: center;
         }
         nav {
-            background-color: #333;
-            color: white;
+            background-color: var(--secondary-color);
             padding: 0.5rem;
         }
         nav ul {
@@ -40,17 +44,38 @@
             text-decoration: none;
         }
         main {
-            flex: 1;
-            padding: 2rem;
             max-width: 800px;
             margin: 0 auto;
+            padding: 2rem;
+        }
+        section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        h1, h2 {
+            color: var(--primary-color);
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        .cta-button:hover {
+            background-color: #2980b9;
         }
         footer {
-            background-color: #333;
+            background-color: var(--secondary-color);
             color: white;
             text-align: center;
             padding: 1rem;
-            margin-top: auto;
+            margin-top: 2rem;
         }
         @media (max-width: 600px) {
             nav ul {
@@ -65,37 +90,26 @@
 </head>
 <body>
     <header>
-        <h1>Welcome to My Awesome Web App!</h1>
+        <h1>Modern UI Website</h1>
     </header>
     <nav>
         <ul>
-            <li><a href="#home">Home</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#services">Services</a></li>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="features.html">Features</a></li>
+            <li><a href="about.html">About</a></li>
             <li><a href="contact.html">Contact</a></li>
         </ul>
     </nav>
     <main>
         <section id="home">
-            <h2>Home</h2>
-            <p>Welcome to our web application! We're excited to have you here. Explore our site to learn more about what we offer.</p>
-        </section>
-        <section id="about">
-            <h2>About Us</h2>
-            <p>We are a passionate team dedicated to creating amazing web experiences. Our goal is to provide innovative solutions that make a difference in people's lives.</p>
-        </section>
-        <section id="services">
-            <h2>Our Services</h2>
-            <ul>
-                <li>Web Design</li>
-                <li>Web Development</li>
-                <li>Mobile App Development</li>
-                <li>Cloud Solutions</li>
-            </ul>
+            <h2>Welcome to Our Modern Website</h2>
+            <p>Experience the future of web design with our sleek and responsive layout. Built with pure HTML and inline CSS, this website showcases the power of modern web technologies.</p>
+            <a href="contact.html" class="cta-button">Get Started</a>
         </section>
     </main>
     <footer>
-        <p>&copy; 2025 My Awesome Web App. All rights reserved.</p>
+        <p>&copy; 2025 Modern UI Website. All rights reserved.</p>
     </footer>
 </body>
 </html>
+
