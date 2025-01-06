@@ -1,0 +1,47 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin <account_id>.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+      - name: Build Docker Image
+        run: |
+          docker build -t my-app .
+          docker tag my-app:latest <account_id>.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/my-app:latest
+
+      - name: Push to Amazon ECR
+        run: |
+          docker push <account_id>.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/my-app:latest
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Initialize Terraform
+        run: terraform init
+
+      - name: Apply Terraform
+        run: |
+          terraform apply -auto-approve
