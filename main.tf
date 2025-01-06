@@ -31,7 +31,13 @@ resource "aws_ecs_task_definition" "app_task" {
   }
 ]
 DEFINITION
+
+  lifecycle {
+    # Prevent Terraform from trying to destroy the ECS task definition
+    prevent_destroy = true
+  }
 }
+
 
 resource "aws_ecs_service" "app_service" {
   name            = "my-app-service"
