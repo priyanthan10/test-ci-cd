@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 resource "aws_ecr_repository" "app_repo" {
-  name = "my-app"
+  name = "my-app-2"
 }
 
 resource "aws_ecs_cluster" "app_cluster" {
