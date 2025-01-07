@@ -1,5 +1,3 @@
-terraform import aws_iam_role.ecs_task_execution_role ecsTaskExecutionRole
-
 provider "aws" {
   region = var.region
 }
@@ -11,6 +9,8 @@ resource "aws_ecr_repository" "apache_web_repo" {
 resource "aws_ecs_cluster" "apache_web_cluster" {
   name = "apache-web-cluster"
 }
+
+terraform import aws_iam_role.ecs_task_execution_role ecsTaskExecutionRole
 
 resource "aws_ecs_task_definition" "apache_web_task" {
   family                   = "apache-web-task"
