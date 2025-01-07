@@ -10,8 +10,6 @@ resource "aws_ecs_cluster" "apache_web_cluster" {
   name = "apache-web-cluster"
 }
 
-terraform import aws_iam_role.ecs_task_execution_role ecsTaskExecutionRole
-
 resource "aws_ecs_task_definition" "apache_web_task" {
   family                   = "apache-web-task"
   requires_compatibilities = ["FARGATE"]
