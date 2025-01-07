@@ -2,11 +2,11 @@ provider "aws" {
   region = var.region
 }
 
-resource "aws_ecr_repository" "app_repo" {
+resource "aws_ecr_repository" "apache-web-repo" {
   name = "apache-web-repo"
 }
 
-resource "aws_ecs_cluster" "app_cluster" {
+resource "aws_ecs_cluster" "apache-web-cluster" {
   name = "apache-web-cluster"
 }
 
@@ -54,7 +54,7 @@ resource "aws_iam_role_policy" "ecs_task_execution_policy" {
   })
 }
 
-resource "aws_ecs_task_definition" "app_task" {
+resource "aws_ecs_task_definition" "apache-web-task" {
   family                   = "apache-web-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
@@ -80,7 +80,7 @@ DEFINITION
 
 
 
-resource "aws_ecs_service" "app_service" {
+resource "aws_ecs_service" "apache-web-service" {
   name            = "apache-web-service"
   cluster         = aws_ecs_cluster.app_cluster.id
   task_definition = aws_ecs_task_definition.apache-web-task.arn
