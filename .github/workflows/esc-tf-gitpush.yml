@@ -1,4 +1,4 @@
-name: Deploy to AWS
+name: Deploy to AWS ECS
 
 on:
   push:
@@ -43,6 +43,4 @@ jobs:
         run: terraform init
 
       - name: Apply Terraform
-        run: |
-          terraform import aws_iam_role.ecs_task_execution_role AmazonECSTaskExecutionRolePolicy
-          terraform apply -auto-approve
+        run: terraform apply -auto-approve

@@ -10,6 +10,24 @@ resource "aws_ecs_cluster" "apache_web_cluster" {
   name = "apache-web-cluster"
 }
 
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "AmazonECSTaskExecutionRolePolicy"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+
 resource "aws_ecs_task_definition" "apache_web_task" {
   family                   = "apache-web-task"
   requires_compatibilities = ["FARGATE"]
