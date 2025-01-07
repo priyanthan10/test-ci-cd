@@ -44,5 +44,5 @@ jobs:
 
       - name: Apply Terraform
         run: |
-          terraform import aws_iam_role.ecs_task_execution_role ecsTaskExecutionRole
+          terraform import aws_iam_role.ecs_task_execution_role AmazonECSTaskExecutionRolePolicy
           terraform apply -auto-approve
