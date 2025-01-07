@@ -2,11 +2,11 @@ provider "aws" {
   region = var.region
 }
 
-resource "aws_ecr_repository" "apache-web-repo" {
+resource "aws_ecr_repository" "apache_web_repo" {
   name = "apache-web-repo"
 }
 
-resource "aws_ecs_cluster" "apache-web-cluster" {
+resource "aws_ecs_cluster" "apache_web_cluster" {
   name = "apache-web-cluster"
 }
 
@@ -54,7 +54,7 @@ resource "aws_iam_role_policy" "ecs_task_execution_policy" {
   })
 }
 
-resource "aws_ecs_task_definition" "apache-web-task" {
+resource "aws_ecs_task_definition" "apache_web_task" {
   family                   = "apache-web-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
@@ -65,8 +65,8 @@ resource "aws_ecs_task_definition" "apache-web-task" {
   container_definitions = <<DEFINITION
 [
   {
-    "name": "my-app",
-    "image": "${aws_ecr_repository.app_repo.repository_url}:latest",
+    "name": "apache-web-container",
+    "image": "${aws_ecr_repository.apache_web_repo.repository_url}:latest",
     "portMappings": [
       {
         "containerPort": 80,
@@ -78,12 +78,10 @@ resource "aws_ecs_task_definition" "apache-web-task" {
 DEFINITION
 }
 
-
-
-resource "aws_ecs_service" "apache-web-service" {
+resource "aws_ecs_service" "apache_web_service" {
   name            = "apache-web-service"
-  cluster         = aws_ecs_cluster.app_cluster.id
-  task_definition = aws_ecs_task_definition.apache-web-task.arn
+  cluster         = aws_ecs_cluster.apache_web_cluster.id
+  task_definition = aws_ecs_task_definition.apache_web_task.arn
   desired_count   = 1
   launch_type     = "FARGATE"
 
