@@ -10,40 +10,80 @@ resource "aws_ecs_cluster" "app_cluster" {
   name = "apache-web-cluster"
 }
 
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "ecsTaskExecutionRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "ecs_task_execution_policy" {
+  name   = "ecsTaskExecutionPolicy"
+  role   = aws_iam_role.ecs_task_execution_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchGetImage",
+          "ecr:BatchCheckLayerAvailability"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_ecs_task_definition" "app_task" {
   family                   = "apache-web-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecsTaskExecutionRole.arn
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = <<DEFINITION
 [
   {
-    "name": "apache-container",
+    "name": "my-app",
     "image": "${aws_ecr_repository.app_repo.repository_url}:latest",
     "portMappings": [
       {
         "containerPort": 80,
-        "protocol": "tcp"
+        "hostPort": 80
       }
     ]
   }
 ]
 DEFINITION
-
-  lifecycle {
-    # Prevent Terraform from trying to destroy the ECS task definition
-    prevent_destroy = true
-  }
 }
+
 
 
 resource "aws_ecs_service" "app_service" {
   name            = "apache-web-service"
   cluster         = aws_ecs_cluster.app_cluster.id
-  task_definition = aws_ecs_task_definition.app_task.arn
+  task_definition = aws_ecs_task_definition.apache-web-task.arn
   desired_count   = 1
   launch_type     = "FARGATE"
 
